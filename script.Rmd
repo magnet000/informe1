@@ -1,0 +1,161 @@
+---
+title: "Anàlisi informe 1"
+author: "Iman El Kabiri Ouarqui"
+date: "10/10/2020"
+output: html_document
+---
+En aquest script es duu a térme l'anàlisi respecte les persones que no denuncien per poca confiança en la funció policial, es veurà si el gènere és un factor important tant en aspecte com per la percepció de seguretat que aquestes persones senten.
+
+Carrega de dades. Hi haurà informació sobre les bases de dades en la descripció d'aquest repositori.
+```{r}
+d <- read.csv("/Users/IMAN/Desktop/Informe1/pers_text.csv")
+ff <- read.csv("/Users/IMAN/Desktop/Informe1/fets_r.csv")
+```
+
+Ajuntar en una mateixa base de dades tant els fets soferts com informació sobre els enquestats. Mitjançant el número de qüestionari podem ajuntar-les, fusionar-les.
+```{r}
+final <- merge(d, ff, by.x='NUMQ', by.y='NUMQ', all.x=TRUE, all.y = TRUE) 
+```
+
+A continuació agafarem la porció d'enquestes, de fets, que havent patit un delicte NO han sigut denunciats per poca confiança en la funció policial o bé perquè no creuen que la policia pugui fer alguna cosa.
+```{r}
+pol <- subset(final, final$MOT_C == "SÍ" | final$MOT_D == "SÍ")
+```
+Aquesta nova base de dades té un gruix de 1943 fets, és a dir, 1943 fets no denunciats per culpa de la poca confiança en la policia o perquè la persona ha pensat que no podrien fer res.
+
+Com que pot haver repetit un mateix número d'enquesta perquè a vegades la persona que respon ha patit més d'un delicte, només ens quedarem amb un dels delictes patits, és a dir, un delicte patit per persona, amb l'objectiu de simplificar l'anàlisi:
+```{r}
+pol <- pol[!duplicated(pol$NUMQ), ]
+```
+
+Ara doncs tenim una base de dades on només consten les persones que havent estat victimitzades no han denunciat un dels fets que hagin patit per la poca confiança que tenen en la policia o perquè no creuen que la policia pugui fer alguna cosa.
+
+Del total d'entrevistats (4734), 905 havien patit algun delicte (o més d'un) i no el van denunciar per poca confiança en la policia o bé perquè no creuen que la policia pugui fer alguna cosa.
+
+A continuació es crea una variable que ens diferenciï entre les persones que no han denunciat perquè no confien en la polícia, els que pensen que la policia no podria fer res i els que pensen les dues coses:
+```{r}
+pol$policia <- ifelse(pol$MOT_C == "SÍ" & pol$MOT_D == "SÍ", "Ambdues raons", "Una de les raons")
+```
+
+```{r warning=F, fig.align='center', message=F}
+library(ggplot2)
+ggplot(pol) +
+ aes(x = policia) +
+ geom_bar(fill = "#fd9567") +
+ labs(x = "Raons", y = "Freqüència", title = "La no denúncia i la funció policial", subtitle = "No denúncia per poca confiança en la policia o perquè pensen que la policia \nno pot fer res o ambdues raons") +
+ theme_minimal()
+```
+
+Aquesta és doncs la distribució final de la variable creada. De les 950 persones que no havien denunciat un fet per culpa de la funció policial 331 ni confien en la policia ni pensen que podien haver fet alguna cosa.
+
+```{r warning=F, message=F}
+library(dplyr)
+library(kableExtra)
+round(descr::freq(pol$SEXE.x, plot = F),2) %>% kable(.) %>% 
+        kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F) %>% 
+        footnote(general = "Sexe de les persones que no denuncien per culpa de la funció policial")
+```
+
+Al mirar en aquesta base de dades (que consta de les persones que no denuncien per alguna raó relacionada amb la funció policial) veiem que el nombre de homes i dones és bastant equilibrat, un 50.83% són dones i un 49.17% són homes.
+
+El que es podria fer a continuació és veure si realment aquestes diferències es poden extrapolar i poder concloure que el sexe és efectivament un indicador de la poca confiança en la funció policial alhora de denunciar, per això és pot dur a térme un test de comparació de proporcions.
+
+```{r}
+prop.test(460, 905, p=0.5, correct= F)
+```
+
+En aquest análisi s'intenta veure si el 50.83% és diferent al 50% i segons l'anàlisi no tenim suficient informació per afirmar que el sexe intervingui quan les persones decideixen no denunciar per culpa de la funció policial. 
+
+Per tant, podem dir que el sexe, en aquest cas, no és un indicador que ens doni informació sobre què passa amb les persones que no denuncien per culpa de la poca confiança en la policia. Tant homes com dones són igual de propensos a desconfiar en la policia i per tant, arribar a no denunciar.
+
+En quant al nivell de seguretat que senten les persones que no denuncien per culpa de la funció policial es portarà a térme un anàlisi de comparació de mitjanes independents.
+
+Primer s'han de fer algunes transformacions a les variables per poder fer l'anàlisi:
+```{r}
+# Adecuació de la variable per poder fer l'anàlisi
+levels(pol$VAL_SEGUR) <- c("0", "1","10", "2", "3", "4", "5", "6", "7", "8", "9", rep(NA, 2))
+```
+```{r}
+summary(pol$VAL_SEGUR)
+```
+
+```{r}
+pol$VAL_SEGUR_r <- car::recode(pol$VAL_SEGUR,
+                               ' "0" = 0;
+                               "1"=1;
+                               "2"=2;
+                               "3"=3;
+                               "4"=4;
+                               "5"=5;
+                               "6"=6;
+                               "7"=7;
+                               "8"=8;
+                               "9"=9;
+                               "10"=10;
+                               NA=NA', 
+                               as.factor=F,
+                               as.numeric=T)
+as.matrix(round(summary(pol$VAL_SEGUR_r),2)) %>% kable(.) %>% 
+        kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F) %>% 
+        footnote(general = "Estadístics de la variable de percepció de seguretat a Barcelona") %>% 
+        column_spec(1, bold=T)
+```
+
+D'entrada veiem que les persones que no denuncien per culpa de la desconfiança en la funció policial o que creuen que no poden fer res tenen una mitjana de 4.36 en quant a la percepció de seguretat. És a dir, aquestes persones li donen un suspès a la seguretat que hi ha a Barcelona, en mitjana.
+
+És això diferent si tenim en compte el sexe? Es comparan les mitjanes de seguretat ciutadana percebuda d'homes i dones.
+
+Condicions d'aplicació per al test paramètric:
+```{r}
+p <- psych::describeBy(pol$VAL_SEGUR_r, pol$SEXE.x) #Estadístics per grup
+don <- as.data.frame(p$DONA)
+hom <- as.data.frame(p$HOME)
+x<- rbind(don$n, hom$n) 
+colnames(x) <- c("n")
+rownames(x) <- c("Dones", "Homes")
+x %>% kable(.) %>% 
+        kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F) %>% 
+        footnote(general = " -n- donat l'encreuament entre la variable de seguretat i el sexe")
+```
+
+Condicions d'aplicació per al test paramètric per homocedasticitat o heterocedesticitat:
+```{r}
+#Mirem si les variàncies són iguals, H0= són iguals (homo)  HA= són diferents (hetero) 
+car::leveneTest(pol$VAL_SEGUR_r, pol$SEXE.x) %>% tibble::remove_rownames() %>% slice(-2) %>%  kable(.) %>% 
+        kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F) %>% 
+        footnote(general = "Levene Test")
+#El test s'ha de fer per homocedasticitat
+```
+
+Test:
+```{r}
+t.test(pol$VAL_SEGUR_r ~ pol$SEXE.x, var.equal = T)
+```
+
+Com podem veure, el p-valor és molt elevat, no podem establir diferències entre homes i dones que no denuncien per poca confiança en la policia alhora de percebre la seguretat, ambdós grups la suspenen.
+
+# Conclusió
+
+El que ens ha permès saber aquest anàlisi és que:
+
+1. La proporció d'homes i dones que no denuncien un fet perquè senten poca confiança en la policia és la mateixa, no existeixen unes diferències significatives.
+
+2. La mitjana de percepció de seguretat que senten els homes i les dones que no han denunciat per poca confiança en la policia és pràcticament la mateixa, no existeixen unes diferències significatives.
+
+4. El que és realment important és tenir en compte que hi ha un gruix de persones que no han denunciat algun dels fets patits per culpa de la poca confiança en la policia i que, a més a més, aquestes persones suspenen la percepció que tenen de la seguretat.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
