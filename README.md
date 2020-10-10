@@ -1,6 +1,6 @@
-# Informe 1 Seminaris de Policia i Seguretat a la UAB
+# Seminaris de Policia i Seguretat a la UAB: Informe 1 
 
-En aquest repositori hi constaran una sèrie de documents i bases de dades:
+En aquest repositori hi constaran una sèrie de fitxers que són els següents:
 
 1. `fitxa_tècnica.pdf`: en aquest PDF hi consta la informació sobre les bases de dades utilitzades, com l'univers i el mètode de recollida de dades, entre d'altres qüestions.
 2. `qüestionari.pdf`: en aquest PDF hi ha un model de qüestionari que es va utilitzar per fer les entrevistes on hi ha els codis de les variables per poder consultar-les en la base de dades.
